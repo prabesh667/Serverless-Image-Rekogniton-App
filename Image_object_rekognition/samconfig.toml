@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "rekognition"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1p9o75bj9uqww"
+s3_prefix = "rekognition"
+region = "eu-central-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []

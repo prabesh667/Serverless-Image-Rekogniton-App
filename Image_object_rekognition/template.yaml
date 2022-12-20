@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lambda-python3.7
+
+  Sample SAM Template for lambda-python3.7
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: python3.7
+    Timeout: 600
+    MemorySize: 1024
+
+Resources:
+  s3Bucket:
+   Type: AWS::S3::Bucket
+   Properties: 
+     BucketName: !Sub 'image-bucket1-${AWS::Region}-${AWS::AccountId}'   
+     Tags:
+       - Key: Name
+         Value: image_bucket 
+
+  LablesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - 
+          AttributeName: "image-key"
+          AttributeType: "S"
+        - 
+          AttributeName: "image-label"
+          AttributeType: "S"
+
+      KeySchema:
+        - 
+          AttributeName: "image-key"
+          KeyType: "HASH"
+        - 
+          AttributeName: "image-label"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: objectt-inn-image
+      Tags:
+        - Key: Name
+          Value: store-image-labels
+
+  MyRekognitionFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./Rekognition_function/
+      Handler: lambda_function.lambda_handler
+      FunctionName: lambda_function
+      Environment: 
+        Variables:
+          LABELS_TABLE: !Ref LablesTable
+      Runtime: python3.7
+      Policies: 
+        - AmazonRekognitionReadOnlyAccess # Managed Policy
+        - S3CrudPolicy:  # With this policy the Lambda has read-write access to the bucket
+            BucketName: !Sub "image-bucket1-${AWS::Region}-${AWS::AccountId}/*"
+        - DynamoDBCrudPolicy:  # With this policy the Lambda can red-write to the Table
+            TableName: !Ref LablesTable
+
+      Events:
+        PhotoUpload:
+          Type: S3 
+          Properties:
+            Bucket: !Ref s3Bucket
+            Events: s3:ObjectCreated:*
+    #Metadata:
+     # Dockerfile: Dockerfile
+      #DockerContext: ./my_function
+     # DockerTag: Python3.7-v1          
+              
+            
+
+Outputs:
+   #ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+   #Find out more about other implicit resources you can reference within SAM
+   #https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  MyRekognitionFunction:
+    Description: "MyRekognitionFunction ARN"
+    Value: !GetAtt MyRekognitionFunction.Arn
+  MyRekognitionFunctionIamRole:
+    Description: "Implicit IAM Role created for MyRekognitionFunction"
+    Value: !GetAtt MyRekognitionFunctionRole.Arn
